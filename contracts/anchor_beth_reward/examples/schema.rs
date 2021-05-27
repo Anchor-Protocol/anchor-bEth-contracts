@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use beth::reward::{
     AccruedRewardsResponse, ConfigResponse, HandleMsg, HolderResponse, HoldersResponse, InitMsg,
-    MigrateMsg, QueryMsg, StateResponse,
+    QueryMsg, StateResponse,
 };
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
@@ -21,5 +21,4 @@ fn main() {
     export_schema(&schema_for!(AccruedRewardsResponse), &out_dir);
     export_schema(&schema_for!(HolderResponse), &out_dir);
     export_schema(&schema_for!(HoldersResponse), &out_dir);
-    export_schema(&schema_for!(MigrateMsg), &out_dir);
 }

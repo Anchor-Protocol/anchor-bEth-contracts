@@ -6,10 +6,10 @@ use crate::user::{
     handle_claim_rewards, handle_decrease_balance, handle_increase_balance, query_accrued_rewards,
     query_holder, query_holders,
 };
-use beth::reward::{ConfigResponse, HandleMsg, InitMsg, MigrateMsg, QueryMsg, StateResponse};
+use beth::reward::{ConfigResponse, HandleMsg, InitMsg, QueryMsg, StateResponse};
 use cosmwasm_std::{
-    to_binary, Api, Binary, Decimal, Env, Extern, HandleResponse, InitResponse, MigrateResponse,
-    MigrateResult, Querier, StdResult, Storage, Uint128,
+    to_binary, Api, Binary, Decimal, Env, Extern, HandleResponse, InitResponse, Querier, StdResult,
+    Storage, Uint128,
 };
 
 use terra_cosmwasm::TerraMsgWrapper;
@@ -54,11 +54,7 @@ pub fn handle<S: Storage, A: Api, Q: Querier>(
         HandleMsg::PostInitialize { token_contract } => {
             handle_post_initialize(deps, env, token_contract)
         }
-        HandleMsg::UpdateConfig {
-            owner,
-            reward_denom,
-            token_contract,
-        } => handle_update_config(deps, env, owner, reward_denom, token_contract),
+        HandleMsg::UpdateConfig { owner } => handle_update_config(deps, env, owner),
         HandleMsg::IncreaseBalance { address, amount } => {
             handle_increase_balance(deps, env, address, amount)
         }
@@ -107,12 +103,4 @@ fn query_state<S: Storage, A: Api, Q: Querier>(deps: &Extern<S, A, Q>) -> StdRes
         total_balance: state.total_balance,
         prev_reward_balance: state.prev_reward_balance,
     })
-}
-
-pub fn migrate<S: Storage, A: Api, Q: Querier>(
-    _deps: &mut Extern<S, A, Q>,
-    _env: Env,
-    _msg: MigrateMsg,
-) -> MigrateResult {
-    Ok(MigrateResponse::default())
 }
