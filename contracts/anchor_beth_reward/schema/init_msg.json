@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InitMsg",
+  "type": "object",
+  "required": [
+    "owner",
+    "reward_denom"
+  ],
+  "properties": {
+    "owner": {
+      "$ref": "#/definitions/HumanAddr"
+    },
+    "reward_denom": {
+      "type": "string"
+    }
+  },
+  "definitions": {
+    "HumanAddr": {
+      "type": "string"
+    }
+  }
+}
