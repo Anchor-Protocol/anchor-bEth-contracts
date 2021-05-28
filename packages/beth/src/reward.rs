@@ -19,12 +19,8 @@ pub enum HandleMsg {
     /// Set the token contract addess after initialization
     PostInitialize { token_contract: HumanAddr },
 
-    /// Update contract configuration
-    UpdateConfig {
-        owner: Option<HumanAddr>,
-        token_contract: Option<HumanAddr>,
-        reward_denom: Option<String>,
-    },
+    /// Update contract configuration, currently only owner is updatable
+    UpdateConfig { owner: HumanAddr },
 
     ////////////////////
     /// bAsset's operations
@@ -95,6 +91,3 @@ pub struct HolderResponse {
 pub struct HoldersResponse {
     pub holders: Vec<HolderResponse>,
 }
-
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct MigrateMsg {}

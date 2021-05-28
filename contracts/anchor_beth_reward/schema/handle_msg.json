@@ -23,7 +23,7 @@
       }
     },
     {
-      "description": "Update contract configuration",
+      "description": "Update contract configuration, currently only owner is updatable",
       "type": "object",
       "required": [
         "update_config"
@@ -31,32 +31,12 @@
       "properties": {
         "update_config": {
           "type": "object",
+          "required": [
+            "owner"
+          ],
           "properties": {
             "owner": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "reward_denom": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "token_contract": {
-              "anyOf": [
-                {
-                  "$ref": "#/definitions/HumanAddr"
-                },
-                {
-                  "type": "null"
-                }
-              ]
+              "$ref": "#/definitions/HumanAddr"
             }
           }
         }
