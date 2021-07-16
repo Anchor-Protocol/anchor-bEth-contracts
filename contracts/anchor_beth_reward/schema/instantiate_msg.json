@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InitMsg",
+  "title": "InstantiateMsg",
   "type": "object",
   "required": [
     "owner",
@@ -8,14 +8,9 @@
   ],
   "properties": {
     "owner": {
-      "$ref": "#/definitions/HumanAddr"
+      "type": "string"
     },
     "reward_denom": {
-      "type": "string"
-    }
-  },
-  "definitions": {
-    "HumanAddr": {
       "type": "string"
     }
   }
