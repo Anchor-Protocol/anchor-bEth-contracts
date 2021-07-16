@@ -1,7 +1,8 @@
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, AllBalanceResponse, Api, BalanceResponse, BankQuery, CanonicalAddr,
-    Coin, Decimal, Extern, HumanAddr, Querier, QuerierResult, QueryRequest, SystemError, Uint128,
+    Coin, ContractResult, Decimal, OwnedDeps, Querier, QuerierResult, QueryRequest, SystemError,
+    SystemResult, Uint128,
 };
 use std::collections::HashMap;
 
@@ -12,19 +13,17 @@ use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrap
 pub const MOCK_CONTRACT_ADDR: &str = "cosmos2contract";
 
 pub fn mock_dependencies(
-    canonical_length: usize,
     contract_balance: &[Coin],
-) -> Extern<MockStorage, MockApi, WasmMockQuerier> {
-    let contract_addr = HumanAddr::from(MOCK_CONTRACT_ADDR);
+) -> OwnedDeps<MockStorage, MockApi, WasmMockQuerier> {
+    let contract_addr = String::from(MOCK_CONTRACT_ADDR);
     let custom_querier: WasmMockQuerier = WasmMockQuerier::new(
         MockQuerier::new(&[(&contract_addr, contract_balance)]),
-        canonical_length,
-        MockApi::new(canonical_length),
+        MockApi::default(),
     );
 
-    Extern {
+    OwnedDeps {
         storage: MockStorage::default(),
-        api: MockApi::new(canonical_length),
+        api: MockApi::default(),
         querier: custom_querier,
     }
 }
@@ -63,7 +62,7 @@ impl Querier for WasmMockQuerier {
         let request: QueryRequest<TerraQueryWrapper> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
-                return Err(SystemError::InvalidRequest {
+                return SystemResult::Err(SystemError::InvalidRequest {
                     error: format!("Parsing query request: {}", e),
                     request: bin_request.into(),
                 })
@@ -83,7 +82,7 @@ impl WasmMockQuerier {
                             let res = TaxRateResponse {
                                 rate: self.tax_querier.rate,
                             };
-                            Ok(to_binary(&res))
+                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
                         }
                         TerraQuery::TaxCap { denom } => {
                             let cap = self
@@ -93,7 +92,7 @@ impl WasmMockQuerier {
                                 .copied()
                                 .unwrap_or_default();
                             let res = TaxCapResponse { cap };
-                            Ok(to_binary(&res))
+                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
                         }
                         _ => panic!("DO NOT ENTER HERE"),
                     }
@@ -102,33 +101,33 @@ impl WasmMockQuerier {
                 }
             }
             QueryRequest::Bank(BankQuery::AllBalances { address }) => {
-                if address == &HumanAddr::from("reward") {
+                if address == &String::from("reward") {
                     let mut coins: Vec<Coin> = vec![];
                     let luna = Coin {
                         denom: "uluna".to_string(),
-                        amount: Uint128(1000u128),
+                        amount: Uint128::new(1000u128),
                     };
                     coins.push(luna);
                     let krt = Coin {
                         denom: "ukrt".to_string(),
-                        amount: Uint128(1000u128),
+                        amount: Uint128::new(1000u128),
                     };
                     coins.push(krt);
                     let all_balances = AllBalanceResponse { amount: coins };
-                    Ok(to_binary(&to_binary(&all_balances).unwrap()))
+                    SystemResult::Ok(ContractResult::from(to_binary(&all_balances)))
                 } else {
                     unimplemented!()
                 }
             }
             QueryRequest::Bank(BankQuery::Balance { address, denom }) => {
-                if address == &HumanAddr::from("reward") && denom == "uusd" {
+                if address == &String::from("reward") && denom == "uusd" {
                     let bank_res = BalanceResponse {
                         amount: Coin {
-                            amount: Uint128(2000u128),
+                            amount: Uint128::new(2000u128),
                             denom: denom.to_string(),
                         },
                     };
-                    Ok(to_binary(&bank_res))
+                    SystemResult::Ok(ContractResult::from(to_binary(&bank_res)))
                 } else {
                     unimplemented!()
                 }
@@ -140,15 +139,11 @@ impl WasmMockQuerier {
 
 #[derive(Clone, Default)]
 pub struct TokenQuerier {
-    balances: HashMap<HumanAddr, HashMap<HumanAddr, Uint128>>,
+    balances: HashMap<String, HashMap<String, Uint128>>,
 }
 
 impl WasmMockQuerier {
-    pub fn new<A: Api>(
-        base: MockQuerier<TerraQueryWrapper>,
-        _canonical_length: usize,
-        _api: A,
-    ) -> Self {
+    pub fn new<A: Api>(base: MockQuerier<TerraQueryWrapper>, _api: A) -> Self {
         WasmMockQuerier {
             base,
             tax_querier: TaxQuerier::default(),

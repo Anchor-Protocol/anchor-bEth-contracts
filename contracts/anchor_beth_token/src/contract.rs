@@ -1,25 +1,29 @@
-use cosmwasm_std::{
-    Api, Binary, Env, Extern, HandleResponse, InitResponse, Querier, StdResult, Storage,
-};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
-use cw20_base::allowances::{handle_decrease_allowance, handle_increase_allowance};
-use cw20_base::contract::init as cw20_init;
+use cw20_base::allowances::{execute_decrease_allowance, execute_increase_allowance};
+use cw20_base::contract::instantiate as cw20_instantiate;
 use cw20_base::contract::query as cw20_query;
-use cw20_base::msg::{HandleMsg, InitMsg, QueryMsg};
+use cw20_base::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cw20_base::ContractError;
 
 use crate::handler::*;
-use crate::msg::TokenInitMsg;
+use crate::msg::TokenInstantiateMsg;
 use crate::state::store_reward_contract;
 
-pub fn init<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn instantiate(
+    deps: DepsMut,
     env: Env,
-    msg: TokenInitMsg,
-) -> StdResult<InitResponse> {
-    cw20_init(
+    info: MessageInfo,
+    msg: TokenInstantiateMsg,
+) -> StdResult<Response> {
+    let reward_raw = deps.api.addr_canonicalize(&msg.reward_contract)?;
+    store_reward_contract(deps.storage, &reward_raw)?;
+
+    cw20_instantiate(
         deps,
         env,
-        InitMsg {
+        info,
+        InstantiateMsg {
             name: msg.name,
             symbol: msg.symbol,
             decimals: msg.decimals,
@@ -28,56 +32,69 @@ pub fn init<S: Storage, A: Api, Q: Querier>(
         },
     )?;
 
-    store_reward_contract(
-        &mut deps.storage,
-        &deps.api.canonical_address(&msg.reward_contract)?,
-    )?;
-
-    Ok(InitResponse::default())
+    Ok(Response::default())
 }
 
-pub fn handle<S: Storage, A: Api, Q: Querier>(
-    deps: &mut Extern<S, A, Q>,
+pub fn execute(
+    deps: DepsMut,
     env: Env,
-    msg: HandleMsg,
-) -> StdResult<HandleResponse> {
+    info: MessageInfo,
+    msg: ExecuteMsg,
+) -> Result<Response, ContractError> {
     match msg {
-        HandleMsg::Transfer { recipient, amount } => handle_transfer(deps, env, recipient, amount),
-        HandleMsg::Burn { amount } => handle_burn(deps, env, amount),
-        HandleMsg::Send {
+        ExecuteMsg::Transfer { recipient, amount } => {
+            let recipient_addr = deps.api.addr_validate(&recipient)?;
+            execute_transfer(deps, env, info, recipient_addr, amount)
+        }
+        ExecuteMsg::Burn { amount } => execute_burn(deps, env, info, amount),
+        ExecuteMsg::Send {
             contract,
             amount,
             msg,
-        } => handle_send(deps, env, contract, amount, msg),
-        HandleMsg::Mint { recipient, amount } => handle_mint(deps, env, recipient, amount),
-        HandleMsg::IncreaseAllowance {
+        } => {
+            let contract_addr = deps.api.addr_validate(&contract)?;
+            execute_send(deps, env, info, contract_addr, amount, msg)
+        }
+        ExecuteMsg::Mint { recipient, amount } => {
+            let recipient_addr = deps.api.addr_validate(&recipient)?;
+            execute_mint(deps, env, info, recipient_addr, amount)
+        }
+        ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
             expires,
-        } => handle_increase_allowance(deps, env, spender, amount, expires),
-        HandleMsg::DecreaseAllowance {
+        } => execute_increase_allowance(deps, env, info, spender, amount, expires),
+        ExecuteMsg::DecreaseAllowance {
             spender,
             amount,
             expires,
-        } => handle_decrease_allowance(deps, env, spender, amount, expires),
-        HandleMsg::TransferFrom {
+        } => execute_decrease_allowance(deps, env, info, spender, amount, expires),
+        ExecuteMsg::TransferFrom {
             owner,
             recipient,
             amount,
-        } => handle_transfer_from(deps, env, owner, recipient, amount),
-        HandleMsg::BurnFrom { owner, amount } => handle_burn_from(deps, env, owner, amount),
-        HandleMsg::SendFrom {
+        } => {
+            let owner_addr = deps.api.addr_validate(&owner)?;
+            let recipient_addr = deps.api.addr_validate(&recipient)?;
+            execute_transfer_from(deps, env, info, owner_addr, recipient_addr, amount)
+        }
+        ExecuteMsg::BurnFrom { owner, amount } => {
+            let owner_addr = deps.api.addr_validate(&owner)?;
+            execute_burn_from(deps, env, info, owner_addr, amount)
+        }
+        ExecuteMsg::SendFrom {
             owner,
             contract,
             amount,
             msg,
-        } => handle_send_from(deps, env, owner, contract, amount, msg),
+        } => {
+            let owner_addr = deps.api.addr_validate(&owner)?;
+            let contract_addr = deps.api.addr_validate(&contract)?;
+            execute_send_from(deps, env, info, owner_addr, contract_addr, amount, msg)
+        }
     }
 }
 
-pub fn query<S: Storage, A: Api, Q: Querier>(
-    deps: &Extern<S, A, Q>,
-    msg: QueryMsg,
-) -> StdResult<Binary> {
-    cw20_query(deps, msg)
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+    cw20_query(deps, _env, msg)
 }

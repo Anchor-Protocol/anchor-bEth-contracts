@@ -1,7 +1,7 @@
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
-    from_slice, to_binary, Coin, Decimal, Extern, HumanAddr, Querier, QuerierResult, QueryRequest,
-    SystemError, Uint128,
+    from_slice, to_binary, Coin, ContractResult, Decimal, OwnedDeps, Querier, QuerierResult,
+    QueryRequest, SystemError, SystemResult, Uint128,
 };
 use std::str::FromStr;
 use terra_cosmwasm::{
@@ -10,16 +10,15 @@ use terra_cosmwasm::{
 };
 
 pub fn mock_dependencies(
-    canonical_length: usize,
     contract_balance: &[Coin],
-) -> Extern<MockStorage, MockApi, WasmMockQuerier> {
-    let contract_addr = HumanAddr::from(MOCK_CONTRACT_ADDR);
+) -> OwnedDeps<MockStorage, MockApi, WasmMockQuerier> {
+    let contract_addr = MOCK_CONTRACT_ADDR;
     let custom_querier: WasmMockQuerier =
         WasmMockQuerier::new(MockQuerier::new(&[(&contract_addr, contract_balance)]));
 
-    Extern {
+    OwnedDeps {
         storage: MockStorage::default(),
-        api: MockApi::new(canonical_length),
+        api: MockApi::default(),
         querier: custom_querier,
     }
 }
@@ -34,7 +33,7 @@ impl Querier for WasmMockQuerier {
         let request: QueryRequest<TerraQueryWrapper> = match from_slice(bin_request) {
             Ok(v) => v,
             Err(e) => {
-                return Err(SystemError::InvalidRequest {
+                return SystemResult::Err(SystemError::InvalidRequest {
                     error: format!("Parsing query request: {}", e),
                     request: bin_request.into(),
                 })
@@ -54,12 +53,12 @@ impl WasmMockQuerier {
                             let res = TaxRateResponse {
                                 rate: Decimal::percent(1),
                             };
-                            Ok(to_binary(&res))
+                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
                         }
                         TerraQuery::TaxCap { denom: _ } => {
-                            let cap = Uint128(1000000u128);
+                            let cap = Uint128::new(1000000u128);
                             let res = TaxCapResponse { cap };
-                            Ok(to_binary(&res))
+                            SystemResult::Ok(ContractResult::from(to_binary(&res)))
                         }
                         _ => panic!("DO NOT ENTER HERE"),
                     }
@@ -70,15 +69,17 @@ impl WasmMockQuerier {
                             quote_denoms,
                         } => {
                             if quote_denoms.iter().any(|item| item == &"mnt".to_string()) {
-                                return Err(SystemError::Unknown {});
+                                return SystemResult::Err(SystemError::Unknown {});
                             }
-                            Ok(to_binary(&ExchangeRatesResponse {
-                                base_denom: base_denom.to_string(),
-                                exchange_rates: vec![ExchangeRateItem {
-                                    quote_denom: quote_denoms[0].to_string(),
-                                    exchange_rate: Decimal::from_str("22.1").unwrap(),
-                                }],
-                            }))
+                            SystemResult::Ok(ContractResult::from(to_binary(
+                                &ExchangeRatesResponse {
+                                    base_denom: base_denom.to_string(),
+                                    exchange_rates: vec![ExchangeRateItem {
+                                        quote_denom: quote_denoms[0].to_string(),
+                                        exchange_rate: Decimal::from_str("22.1").unwrap(),
+                                    }],
+                                },
+                            )))
                         }
                         _ => panic!("DO NOT ENTER HERE"),
                     }
@@ -96,7 +97,7 @@ impl WasmMockQuerier {
         WasmMockQuerier { base }
     }
 
-    pub fn _balances(&mut self, balances: &[(&HumanAddr, &[Coin])]) {
+    pub fn _balances(&mut self, balances: &[(&str, &[Coin])]) {
         self.base = MockQuerier::new(balances);
     }
 }
