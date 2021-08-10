@@ -14,7 +14,7 @@ pub fn mock_dependencies(
 ) -> OwnedDeps<MockStorage, MockApi, WasmMockQuerier> {
     let contract_addr = MOCK_CONTRACT_ADDR;
     let custom_querier: WasmMockQuerier =
-        WasmMockQuerier::new(MockQuerier::new(&[(&contract_addr, contract_balance)]));
+        WasmMockQuerier::new(MockQuerier::new(&[(contract_addr, contract_balance)]));
 
     OwnedDeps {
         storage: MockStorage::default(),

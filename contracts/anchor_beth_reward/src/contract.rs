@@ -1,13 +1,13 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 
-use crate::owner::{handle_post_initialize, handle_update_config};
+use crate::owner::{execute_post_initialize, execute_update_config};
 use crate::state::{
     read_config, read_state, store_config, store_contract_addr, store_state, Config, State,
 };
 use crate::user::{
-    handle_claim_rewards, handle_decrease_balance, handle_increase_balance, query_accrued_rewards,
-    query_holder, query_holders,
+    execute_claim_rewards, execute_decrease_balance, execute_increase_balance,
+    query_accrued_rewards, query_holder, query_holders,
 };
 use beth::reward::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg, StateResponse};
 use cosmwasm_std::{
@@ -59,23 +59,23 @@ pub fn execute(
     match msg {
         ExecuteMsg::ClaimRewards { recipient } => {
             let api = deps.api;
-            handle_claim_rewards(deps, env, info, optional_addr_validate(api, recipient)?)
+            execute_claim_rewards(deps, env, info, optional_addr_validate(api, recipient)?)
         }
         ExecuteMsg::PostInitialize { token_contract } => {
             let token_addr = deps.api.addr_validate(&token_contract)?;
-            handle_post_initialize(deps, info, token_addr)
+            execute_post_initialize(deps, info, token_addr)
         }
         ExecuteMsg::UpdateConfig { owner } => {
             let owner_addr = deps.api.addr_validate(&owner)?;
-            handle_update_config(deps, info, owner_addr)
+            execute_update_config(deps, info, owner_addr)
         }
         ExecuteMsg::IncreaseBalance { address, amount } => {
             let addr = deps.api.addr_validate(&address)?;
-            handle_increase_balance(deps, env, info, addr, amount)
+            execute_increase_balance(deps, env, info, addr, amount)
         }
         ExecuteMsg::DecreaseBalance { address, amount } => {
             let addr = deps.api.addr_validate(&address)?;
-            handle_decrease_balance(deps, env, info, addr, amount)
+            execute_decrease_balance(deps, env, info, addr, amount)
         }
     }
 }
@@ -123,7 +123,7 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     };
 
     if let Some(token_contract) = config.token_contract {
-        res.token_contract = Some(deps.api.addr_humanize(&&token_contract)?.to_string());
+        res.token_contract = Some(deps.api.addr_humanize(&token_contract)?.to_string());
     }
 
     Ok(res)

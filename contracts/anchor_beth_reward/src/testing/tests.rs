@@ -1,7 +1,5 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
-use cosmwasm_std::{
-    from_binary, Api, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128,
-};
+use cosmwasm_std::{from_binary, BankMsg, Coin, CosmosMsg, Decimal, StdError, SubMsg, Uint128};
 
 use crate::contract::{execute, instantiate, query};
 use crate::math::{decimal_multiplication_in_256, decimal_subtraction_in_256};
@@ -480,6 +478,7 @@ fn query_holders() {
 
     let init_msg = default_init();
     let info = mock_info("addr0000", &[]);
+
     instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
 
     let msg = ExecuteMsg::PostInitialize {
@@ -488,33 +487,8 @@ fn query_holders() {
     let info = mock_info(MOCK_OWNER_ADDR, &[]);
     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-    let addr1 = deps
-        .api
-        .addr_humanize(&CanonicalAddr::from(vec![
-            1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]))
-        .unwrap()
-        .to_string();
-
-    let addr2 = deps
-        .api
-        .addr_humanize(&CanonicalAddr::from(vec![
-            1, 1, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]))
-        .unwrap()
-        .to_string();
-
-    let addr3 = deps
-        .api
-        .addr_humanize(&CanonicalAddr::from(vec![
-            1, 1, 1, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ]))
-        .unwrap()
-        .to_string();
-
-    // put them in non lexocographical
     let msg = ExecuteMsg::IncreaseBalance {
-        address: addr1.clone(),
+        address: String::from("addr0000"),
         amount: Uint128::from(100u128),
     };
 
@@ -522,13 +496,13 @@ fn query_holders() {
     execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
     let msg = ExecuteMsg::IncreaseBalance {
-        address: addr3.clone(),
+        address: String::from("addr0001"),
         amount: Uint128::from(200u128),
     };
 
     execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
     let msg = ExecuteMsg::IncreaseBalance {
-        address: addr2.clone(),
+        address: String::from("addr0002"),
         amount: Uint128::from(300u128),
     };
 
@@ -543,31 +517,29 @@ fn query_holders() {
         },
     )
     .unwrap();
-
-    // returns lexicographical order
     let holders_response: HoldersResponse = from_binary(&res).unwrap();
     assert_eq!(
         holders_response,
         HoldersResponse {
             holders: vec![
                 HolderResponse {
-                    address: addr1.clone(),
+                    address: String::from("addr0000"),
                     balance: Uint128::from(100u128),
-                    index: Decimal::zero(), // first one skips update
+                    index: Decimal::zero(),
                     pending_rewards: Decimal::zero(),
                 },
                 HolderResponse {
-                    address: addr2.clone(),
+                    address: String::from("addr0001"),
+                    balance: Uint128::from(200u128),
+                    index: Decimal::one(),
+                    pending_rewards: Decimal::zero(),
+                },
+                HolderResponse {
+                    address: String::from("addr0002"),
                     balance: Uint128::from(300u128),
                     index: Decimal::one(),
                     pending_rewards: Decimal::zero(),
                 },
-                HolderResponse {
-                    address: addr3.clone(),
-                    balance: Uint128::from(200u128),
-                    index: Decimal::one(),
-                    pending_rewards: Decimal::zero(),
-                }
             ],
         }
     );
@@ -587,7 +559,7 @@ fn query_holders() {
         holders_response,
         HoldersResponse {
             holders: vec![HolderResponse {
-                address: addr1.clone(),
+                address: String::from("addr0000"),
                 balance: Uint128::from(100u128),
                 index: Decimal::zero(),
                 pending_rewards: Decimal::zero(),
@@ -600,7 +572,7 @@ fn query_holders() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Holders {
-            start_after: Some(addr1.clone()),
+            start_after: Some(String::from("addr0000")),
             limit: None,
         },
     )
@@ -611,14 +583,14 @@ fn query_holders() {
         HoldersResponse {
             holders: vec![
                 HolderResponse {
-                    address: addr2.clone(),
-                    balance: Uint128::from(300u128),
+                    address: String::from("addr0001"),
+                    balance: Uint128::from(200u128),
                     index: Decimal::one(),
                     pending_rewards: Decimal::zero(),
                 },
                 HolderResponse {
-                    address: addr3,
-                    balance: Uint128::from(200u128),
+                    address: String::from("addr0002"),
+                    balance: Uint128::from(300u128),
                     index: Decimal::one(),
                     pending_rewards: Decimal::zero(),
                 }
@@ -631,7 +603,7 @@ fn query_holders() {
         deps.as_ref(),
         mock_env(),
         QueryMsg::Holders {
-            start_after: Some(addr1),
+            start_after: Some(String::from("addr0000")),
             limit: Some(1),
         },
     )
@@ -641,8 +613,8 @@ fn query_holders() {
         holders_response,
         HoldersResponse {
             holders: vec![HolderResponse {
-                address: addr2,
-                balance: Uint128::from(300u128),
+                address: String::from("addr0001"),
+                balance: Uint128::from(200u128),
                 index: Decimal::one(),
                 pending_rewards: Decimal::zero(),
             }],

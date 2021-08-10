@@ -1,6 +1,6 @@
 [package]
 name = "anchor_beth_reward"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2018"
 
 exclude = [
@@ -30,15 +30,16 @@ overflow-checks = true
 backtraces = ["cosmwasm-std/backtraces"]
 
 [dependencies]
-cw20 = "0.7.0"
-cosmwasm-std = { version = "0.15.0", features = ["iterator"] }
-cosmwasm-storage = { version = "0.15.0", features = ["iterator"] }
+cw20 = { version = "0.8.0-rc2" }
+cosmwasm-std = { version = "0.16.0", features = ["iterator"] }
+cosmwasm-storage = { version = "0.16.0", features = ["iterator"] }
+cw-storage-plus = { version = "0.8.0-rc2", features = ["iterator"]}
 schemars = "0.8.1"
 serde = { version = "1.0.103", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.21" }
-terra-cosmwasm = "2.1.0"
-beth = { path = "../../packages/beth", default-features = false, version = "0.2.0"}
-cosmwasm-bignumber = "2.1.1"
+terra-cosmwasm = { version = "2.2.0" }
+beth = { path = "../../packages/beth", default-features = false, version = "0.3.0"}
+cosmwasm-bignumber = "2.2.0"
 
 [dev-dependencies]
-cosmwasm-schema = { version = "0.15.0", default-features = false }
+cosmwasm-schema = { version = "0.16.0", default-features = false }

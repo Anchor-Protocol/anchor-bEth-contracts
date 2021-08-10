@@ -1,25 +1,24 @@
 use beth::reward::ExecuteMsg::{DecreaseBalance, IncreaseBalance};
 use cosmwasm_std::{
-    to_binary, Addr, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128,
-    WasmMsg,
+    to_binary, Binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, SubMsg, Uint128, WasmMsg,
 };
-use cw20_base::allowances::{
+
+use crate::state::read_reward_contract;
+use cw20_legacy::allowances::{
     execute_burn_from as cw20_burn_from, execute_send_from as cw20_send_from,
     execute_transfer_from as cw20_transfer_from,
 };
-use cw20_base::contract::{
+use cw20_legacy::contract::{
     execute_burn as cw20_burn, execute_mint as cw20_mint, execute_send as cw20_send,
     execute_transfer as cw20_transfer,
 };
-use cw20_base::ContractError;
-
-use crate::state::read_reward_contract;
+use cw20_legacy::ContractError;
 
 pub fn execute_transfer(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    recipient: Addr,
+    recipient: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let sender = info.sender.clone();
@@ -27,31 +26,32 @@ pub fn execute_transfer(
         .api
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
-    let res: Response = cw20_transfer(deps, env, info, recipient.to_string(), amount)?;
-    Ok(Response {
-        messages: vec![
-            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: reward_contract.to_string(),
-                msg: to_binary(&DecreaseBalance {
-                    address: sender.to_string(),
-                    amount,
-                })
-                .unwrap(),
-                funds: vec![],
-            })),
-            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                contract_addr: reward_contract.to_string(),
-                msg: to_binary(&IncreaseBalance {
-                    address: recipient.to_string(),
-                    amount,
-                })
-                .unwrap(),
-                funds: vec![],
-            })),
-        ],
-        attributes: res.attributes,
-        ..Response::default()
-    })
+    let rcpt_addr = deps.api.addr_validate(&recipient)?;
+
+    let res: Response = cw20_transfer(deps, env, info, recipient, amount)?;
+    let messages = vec![
+        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: reward_contract.to_string(),
+            msg: to_binary(&DecreaseBalance {
+                address: sender.to_string(),
+                amount,
+            })
+            .unwrap(),
+            funds: vec![],
+        })),
+        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: reward_contract.to_string(),
+            msg: to_binary(&IncreaseBalance {
+                address: rcpt_addr.to_string(),
+                amount,
+            })
+            .unwrap(),
+            funds: vec![],
+        })),
+    ];
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
 }
 
 pub fn execute_burn(
@@ -66,53 +66,50 @@ pub fn execute_burn(
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
     let res: Response = cw20_burn(deps, env, info, amount)?;
-    Ok(Response {
-        messages: vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: reward_contract.to_string(),
-            msg: to_binary(&DecreaseBalance {
-                address: sender.to_string(),
-                amount,
-            })
-            .unwrap(),
-            funds: vec![],
-        }))],
-        attributes: res.attributes,
-        ..Response::default()
-    })
+    let messages = vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: reward_contract.to_string(),
+        msg: to_binary(&DecreaseBalance {
+            address: sender.to_string(),
+            amount,
+        })
+        .unwrap(),
+        funds: vec![],
+    }))];
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
 }
 
 pub fn execute_mint(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    recipient: Addr,
+    recipient: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let reward_contract = deps
         .api
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
-    let res: Response = cw20_mint(deps, env, info, recipient.to_string(), amount)?;
-    Ok(Response {
-        messages: vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+    let res: Response = cw20_mint(deps, env, info, recipient.clone(), amount)?;
+    Ok(Response::new()
+        .add_submessages(vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&IncreaseBalance {
-                address: recipient.to_string(),
+                address: recipient,
                 amount,
             })
             .unwrap(),
             funds: vec![],
-        }))],
-        attributes: res.attributes,
-        ..Response::default()
-    })
+        }))])
+        .add_attributes(res.attributes))
 }
 
 pub fn execute_send(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    contract: Addr,
+    contract: String,
     amount: Uint128,
     msg: Binary,
 ) -> Result<Response, ContractError> {
@@ -121,63 +118,13 @@ pub fn execute_send(
         .api
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
-    let res: Response = cw20_send(deps, env, info, contract.to_string(), amount, msg)?;
-    Ok(Response {
-        messages: vec![
-            vec![
-                SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: reward_contract.to_string(),
-                    msg: to_binary(&DecreaseBalance {
-                        address: sender.to_string(),
-                        amount,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                })),
-                SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: reward_contract.to_string(),
-                    msg: to_binary(&IncreaseBalance {
-                        address: contract.to_string(),
-                        amount,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                })),
-            ],
-            res.messages,
-        ]
-        .concat(),
-        attributes: res.attributes,
-        ..Response::default()
-    })
-}
-
-pub fn execute_transfer_from(
-    deps: DepsMut,
-    env: Env,
-    info: MessageInfo,
-    owner: Addr,
-    recipient: Addr,
-    amount: Uint128,
-) -> Result<Response, ContractError> {
-    let reward_contract = deps
-        .api
-        .addr_humanize(&read_reward_contract(deps.storage)?)?;
-
-    let res: Response = cw20_transfer_from(
-        deps,
-        env,
-        info,
-        owner.to_string(),
-        recipient.to_string(),
-        amount,
-    )?;
-    Ok(Response {
-        messages: vec![
+    let res: Response = cw20_send(deps, env, info, contract.clone(), amount, msg)?;
+    let messages = vec![
+        vec![
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: reward_contract.to_string(),
                 msg: to_binary(&DecreaseBalance {
-                    address: owner.to_string(),
+                    address: sender.to_string(),
                     amount,
                 })
                 .unwrap(),
@@ -186,51 +133,96 @@ pub fn execute_transfer_from(
             SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: reward_contract.to_string(),
                 msg: to_binary(&IncreaseBalance {
-                    address: recipient.to_string(),
+                    address: contract,
                     amount,
                 })
                 .unwrap(),
                 funds: vec![],
             })),
         ],
-        attributes: res.attributes,
-        ..Response::default()
-    })
+        res.messages,
+    ]
+    .concat();
+
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
 }
 
-pub fn execute_burn_from(
+pub fn execute_transfer_from(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    owner: Addr,
+    owner: String,
+    recipient: String,
     amount: Uint128,
 ) -> Result<Response, ContractError> {
     let reward_contract = deps
         .api
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
-    let res: Response = cw20_burn_from(deps, env, info, owner.to_string(), amount)?;
-    Ok(Response {
-        messages: vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+    let valid_owner = deps.api.addr_validate(owner.as_str())?;
+
+    let res: Response = cw20_transfer_from(deps, env, info, owner, recipient.clone(), amount)?;
+    let messages = vec![
+        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&DecreaseBalance {
-                address: owner.to_string(),
+                address: valid_owner.to_string(),
                 amount,
             })
             .unwrap(),
             funds: vec![],
-        }))],
-        attributes: res.attributes,
-        ..Response::default()
-    })
+        })),
+        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: reward_contract.to_string(),
+            msg: to_binary(&IncreaseBalance {
+                address: recipient,
+                amount,
+            })
+            .unwrap(),
+            funds: vec![],
+        })),
+    ];
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
+}
+
+pub fn execute_burn_from(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    owner: String,
+    amount: Uint128,
+) -> Result<Response, ContractError> {
+    let reward_contract = deps
+        .api
+        .addr_humanize(&read_reward_contract(deps.storage)?)?;
+
+    let valid_owner = deps.api.addr_validate(owner.as_str())?;
+
+    let res: Response = cw20_burn_from(deps, env, info, owner, amount)?;
+    let messages = vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        contract_addr: reward_contract.to_string(),
+        msg: to_binary(&DecreaseBalance {
+            address: valid_owner.to_string(),
+            amount,
+        })
+        .unwrap(),
+        funds: vec![],
+    }))];
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
 }
 
 pub fn execute_send_from(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    owner: Addr,
-    contract: Addr,
+    owner: String,
+    contract: String,
     amount: Uint128,
     msg: Binary,
 ) -> Result<Response, ContractError> {
@@ -238,41 +230,35 @@ pub fn execute_send_from(
         .api
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
-    let res: Response = cw20_send_from(
-        deps,
-        env,
-        info,
-        owner.to_string(),
-        contract.to_string(),
-        amount,
-        msg,
-    )?;
-    Ok(Response {
-        messages: vec![
-            vec![
-                SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: reward_contract.to_string(),
-                    msg: to_binary(&DecreaseBalance {
-                        address: owner.to_string(),
-                        amount,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                })),
-                SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
-                    contract_addr: reward_contract.to_string(),
-                    msg: to_binary(&IncreaseBalance {
-                        address: contract.to_string(),
-                        amount,
-                    })
-                    .unwrap(),
-                    funds: vec![],
-                })),
-            ],
-            res.messages,
-        ]
-        .concat(),
-        attributes: res.attributes,
-        ..Response::default()
-    })
+    let valid_owner = deps.api.addr_validate(owner.as_str())?;
+
+    let res: Response = cw20_send_from(deps, env, info, owner, contract.clone(), amount, msg)?;
+    let messages = vec![
+        vec![
+            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: reward_contract.to_string(),
+                msg: to_binary(&DecreaseBalance {
+                    address: valid_owner.to_string(),
+                    amount,
+                })
+                .unwrap(),
+                funds: vec![],
+            })),
+            SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: reward_contract.to_string(),
+                msg: to_binary(&IncreaseBalance {
+                    address: contract,
+                    amount,
+                })
+                .unwrap(),
+                funds: vec![],
+            })),
+        ],
+        res.messages,
+    ]
+    .concat();
+
+    Ok(Response::new()
+        .add_submessages(messages)
+        .add_attributes(res.attributes))
 }

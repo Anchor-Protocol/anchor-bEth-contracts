@@ -16,7 +16,7 @@ use beth::deduct_tax;
 use std::str::FromStr;
 use terra_cosmwasm::TerraMsgWrapper;
 
-pub fn handle_claim_rewards(
+pub fn execute_claim_rewards(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -75,18 +75,16 @@ pub fn handle_claim_rewards(
     }
     .into();
 
-    Ok(Response {
-        messages: vec![SubMsg::new(bank_msg)],
-        attributes: vec![
+    Ok(Response::new()
+        .add_attributes(vec![
             attr("action", "claim_reward"),
             attr("holder_address", holder_addr),
             attr("rewards", rewards),
-        ],
-        ..Response::default()
-    })
+        ])
+        .add_submessage(SubMsg::new(bank_msg)))
 }
 
-pub fn handle_increase_balance(
+pub fn execute_increase_balance(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -126,17 +124,14 @@ pub fn handle_increase_balance(
     store_holder(deps.storage, &address_raw, &holder)?;
     store_state(deps.storage, &state)?;
 
-    Ok(Response {
-        attributes: vec![
-            attr("action", "increase_balance"),
-            attr("holder_address", address),
-            attr("amount", amount),
-        ],
-        ..Response::default()
-    })
+    Ok(Response::new().add_attributes(vec![
+        attr("action", "increase_balance"),
+        attr("holder_address", address),
+        attr("amount", amount),
+    ]))
 }
 
-pub fn handle_decrease_balance(
+pub fn execute_decrease_balance(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -181,14 +176,11 @@ pub fn handle_decrease_balance(
     store_holder(deps.storage, &address_raw, &holder)?;
     store_state(deps.storage, &state)?;
 
-    Ok(Response {
-        attributes: vec![
-            attr("action", "decrease_balance"),
-            attr("holder_address", address),
-            attr("amount", amount),
-        ],
-        ..Response::default()
-    })
+    Ok(Response::new().add_attributes(vec![
+        attr("action", "decrease_balance"),
+        attr("holder_address", address),
+        attr("amount", amount),
+    ]))
 }
 
 /// Increase global_index according to claimed rewards amount

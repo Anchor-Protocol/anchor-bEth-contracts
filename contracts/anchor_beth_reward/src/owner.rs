@@ -3,7 +3,7 @@ use crate::state::{read_config, store_config};
 use cosmwasm_std::{attr, Addr, DepsMut, MessageInfo, Response, StdError, StdResult};
 use terra_cosmwasm::TerraMsgWrapper;
 
-pub fn handle_post_initialize(
+pub fn execute_post_initialize(
     deps: DepsMut,
     info: MessageInfo,
     token_contract: Addr,
@@ -19,13 +19,10 @@ pub fn handle_post_initialize(
 
     store_config(deps.storage, &config)?;
 
-    Ok(Response {
-        attributes: vec![attr("action", "post_initialize")],
-        ..Response::default()
-    })
+    Ok(Response::new().add_attributes(vec![attr("action", "post_initialize")]))
 }
 
-pub fn handle_update_config(
+pub fn execute_update_config(
     deps: DepsMut,
     info: MessageInfo,
     owner: Addr,
@@ -41,8 +38,5 @@ pub fn handle_update_config(
 
     store_config(deps.storage, &config)?;
 
-    Ok(Response {
-        attributes: vec![attr("action", "update_config")],
-        ..Response::default()
-    })
+    Ok(Response::new().add_attributes(vec![attr("action", "update_config")]))
 }
