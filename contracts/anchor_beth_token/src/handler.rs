@@ -30,7 +30,7 @@ pub fn execute_transfer(
 
     let res: Response = cw20_transfer(deps, env, info, recipient, amount)?;
     let messages = vec![
-        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&DecreaseBalance {
                 address: sender.to_string(),
@@ -38,8 +38,8 @@ pub fn execute_transfer(
             })
             .unwrap(),
             funds: vec![],
-        })),
-        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        }),
+        CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&IncreaseBalance {
                 address: rcpt_addr.to_string(),
@@ -47,10 +47,10 @@ pub fn execute_transfer(
             })
             .unwrap(),
             funds: vec![],
-        })),
+        }),
     ];
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_messages(messages)
         .add_attributes(res.attributes))
 }
 
@@ -66,7 +66,7 @@ pub fn execute_burn(
         .addr_humanize(&read_reward_contract(deps.storage)?)?;
 
     let res: Response = cw20_burn(deps, env, info, amount)?;
-    let messages = vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+    let messages = vec![CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: reward_contract.to_string(),
         msg: to_binary(&DecreaseBalance {
             address: sender.to_string(),
@@ -74,9 +74,9 @@ pub fn execute_burn(
         })
         .unwrap(),
         funds: vec![],
-    }))];
+    })];
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_messages(messages)
         .add_attributes(res.attributes))
 }
 
@@ -93,7 +93,7 @@ pub fn execute_mint(
 
     let res: Response = cw20_mint(deps, env, info, recipient.clone(), amount)?;
     Ok(Response::new()
-        .add_submessages(vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        .add_messages(vec![CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&IncreaseBalance {
                 address: recipient,
@@ -101,7 +101,7 @@ pub fn execute_mint(
             })
             .unwrap(),
             funds: vec![],
-        }))])
+        })])
         .add_attributes(res.attributes))
 }
 
@@ -165,7 +165,7 @@ pub fn execute_transfer_from(
 
     let res: Response = cw20_transfer_from(deps, env, info, owner, recipient.clone(), amount)?;
     let messages = vec![
-        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&DecreaseBalance {
                 address: valid_owner.to_string(),
@@ -173,8 +173,8 @@ pub fn execute_transfer_from(
             })
             .unwrap(),
             funds: vec![],
-        })),
-        SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+        }),
+        CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: reward_contract.to_string(),
             msg: to_binary(&IncreaseBalance {
                 address: recipient,
@@ -182,10 +182,10 @@ pub fn execute_transfer_from(
             })
             .unwrap(),
             funds: vec![],
-        })),
+        }),
     ];
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_messages(messages)
         .add_attributes(res.attributes))
 }
 
@@ -203,7 +203,7 @@ pub fn execute_burn_from(
     let valid_owner = deps.api.addr_validate(owner.as_str())?;
 
     let res: Response = cw20_burn_from(deps, env, info, owner, amount)?;
-    let messages = vec![SubMsg::new(CosmosMsg::Wasm(WasmMsg::Execute {
+    let messages = vec![CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: reward_contract.to_string(),
         msg: to_binary(&DecreaseBalance {
             address: valid_owner.to_string(),
@@ -211,9 +211,9 @@ pub fn execute_burn_from(
         })
         .unwrap(),
         funds: vec![],
-    }))];
+    })];
     Ok(Response::new()
-        .add_submessages(messages)
+        .add_messages(messages)
         .add_attributes(res.attributes))
 }
 

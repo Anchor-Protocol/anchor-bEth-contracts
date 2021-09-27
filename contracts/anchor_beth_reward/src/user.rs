@@ -6,7 +6,7 @@ use beth::reward::{AccruedRewardsResponse, HolderResponse, HoldersResponse};
 
 use cosmwasm_std::{
     attr, Addr, BankMsg, CanonicalAddr, Coin, CosmosMsg, Decimal, Deps, DepsMut, Env, MessageInfo,
-    Response, StdError, StdResult, SubMsg, Uint128,
+    Response, StdError, StdResult, Uint128,
 };
 
 use crate::math::{
@@ -81,7 +81,7 @@ pub fn execute_claim_rewards(
             attr("holder_address", holder_addr),
             attr("rewards", rewards),
         ])
-        .add_submessage(SubMsg::new(bank_msg)))
+        .add_message(bank_msg))
 }
 
 pub fn execute_increase_balance(
