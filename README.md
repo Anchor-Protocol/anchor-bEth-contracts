@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/Anchor-Protocol/anchor-bEth-contracts/branch/main/graph/badge.svg?token=1EGN3Z1YDN)](https://codecov.io/gh/Anchor-Protocol/anchor-bEth-contracts)
+
 # Anchor bEth Contracts
 
 This monorepository contains the source code for the smart contracts implementing bEth on the [Terra](https://terra.money) blockchain.
