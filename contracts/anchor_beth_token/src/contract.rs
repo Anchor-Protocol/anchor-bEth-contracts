@@ -9,8 +9,9 @@ use cw20_legacy::contract::query as cw20_query;
 use cw20_legacy::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 use crate::handler::*;
-use crate::msg::TokenInstantiateMsg;
+use crate::msg::{MigrateMsg, TokenInstantiateMsg};
 use crate::state::store_reward_contract;
+use cw20_legacy::state::{MinterData, TOKEN_INFO};
 use cw20_legacy::ContractError;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -85,4 +86,75 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     cw20_query(deps, _env, msg)
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(
+    deps: DepsMut,
+    _env: Env,
+    _info: MessageInfo,
+    msg: MigrateMsg,
+) -> StdResult<Response> {
+    let mut token_info = TOKEN_INFO.load(deps.storage)?;
+
+    let minter = MinterData {
+        minter: deps.api.addr_canonicalize(&msg.minter)?,
+        cap: None,
+    };
+    token_info.mint = Some(minter);
+    println!(
+        "{}",
+        deps.api
+            .addr_humanize(&token_info.clone().mint.unwrap().minter)
+            .unwrap()
+    );
+    TOKEN_INFO.save(deps.storage, &token_info)?;
+    Ok(Response::default())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+    use cosmwasm_std::{Addr, Api};
+    use cw20::MinterResponse;
+
+    #[test]
+    fn proper_migrate() {
+        let mut deps = mock_dependencies(&[]);
+        let first_minter = "first_minter";
+        let new_minter = "new_minter";
+
+        let init_msg = TokenInstantiateMsg {
+            name: "bonded ETH".to_string(),
+            symbol: "BETH".to_string(),
+            decimals: 6,
+            initial_balances: vec![],
+            mint: Some(MinterResponse {
+                minter: first_minter.to_string(),
+                cap: None,
+            }),
+            reward_contract: "reward_contract".to_string(),
+        };
+
+        let info = mock_info("sender", &[]);
+        let res = instantiate(deps.as_mut(), mock_env(), info, init_msg).unwrap();
+        assert_eq!(0, res.messages.len());
+
+        //migrate
+        let migrate_msg = MigrateMsg {
+            minter: new_minter.to_string(),
+        };
+        let info = mock_info("sender", &[]);
+        let res = migrate(deps.as_mut(), mock_env(), info, migrate_msg).unwrap();
+        assert_eq!(res, Response::default());
+
+        let token_info = TOKEN_INFO.load(deps.as_ref().storage).unwrap();
+        assert_eq!(
+            Addr::unchecked(new_minter),
+            deps.api
+                .addr_humanize(&token_info.mint.unwrap().minter)
+                .unwrap()
+        );
+    }
 }
