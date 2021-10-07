@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstantiateMsg",
+  "type": "object",
+  "required": [
+    "anchor_beth_token",
+    "owner",
+    "wormhole_beth_token"
+  ],
+  "properties": {
+    "anchor_beth_token": {
+      "type": "string"
+    },
+    "owner": {
+      "type": "string"
+    },
+    "wormhole_beth_token": {
+      "type": "string"
+    }
+  }
+}

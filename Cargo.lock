@@ -35,6 +35,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchor_beth_swap"
+version = "0.0.0"
+dependencies = [
+ "beth",
+ "cosmwasm-bignumber",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cosmwasm-storage",
+ "cw-storage-plus",
+ "cw20",
+ "schemars",
+ "serde",
+ "terra-cosmwasm",
+ "thiserror",
+]
+
+[[package]]
 name = "anchor_beth_token"
 version = "1.2.0"
 dependencies = [
@@ -80,7 +97,7 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "beth"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
