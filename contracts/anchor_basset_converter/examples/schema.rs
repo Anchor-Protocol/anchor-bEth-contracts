@@ -1,7 +1,7 @@
 use std::env::current_dir;
 use std::fs::create_dir_all;
 
-use beth::swap::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use beth::converter::{ConfigResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 fn main() {

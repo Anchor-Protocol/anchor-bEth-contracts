@@ -89,12 +89,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(
-    deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    msg: MigrateMsg,
-) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
     let mut token_info = TOKEN_INFO.load(deps.storage)?;
 
     let minter = MinterData {
@@ -102,12 +97,6 @@ pub fn migrate(
         cap: None,
     };
     token_info.mint = Some(minter);
-    println!(
-        "{}",
-        deps.api
-            .addr_humanize(&token_info.clone().mint.unwrap().minter)
-            .unwrap()
-    );
     TOKEN_INFO.save(deps.storage, &token_info)?;
     Ok(Response::default())
 }
@@ -145,8 +134,7 @@ mod test {
         let migrate_msg = MigrateMsg {
             minter: new_minter.to_string(),
         };
-        let info = mock_info("sender", &[]);
-        let res = migrate(deps.as_mut(), mock_env(), info, migrate_msg).unwrap();
+        let res = migrate(deps.as_mut(), mock_env(), migrate_msg).unwrap();
         assert_eq!(res, Response::default());
 
         let token_info = TOKEN_INFO.load(deps.as_ref().storage).unwrap();
