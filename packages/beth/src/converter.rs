@@ -24,18 +24,18 @@ pub enum ExecuteMsg {
     /// Burn anchor beth token and return
     /// wormhole beth token
     Receive(Cw20ReceiveMsg),
-    UpdateConfig {
-        owner: Option<String>,
-    },
-    WhitelisteAsset {
-        asset: Asset,
+    RegisterTokens {
+        wormhole_token_address: String,
+        anchor_token_address: String,
     },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Cw20HookMsg {
+    // convert wormhole token to anchor token
     ConvertWormholeToAnchor {},
+    // convert anchor token to wormhole token
     ConvertAnchorToWormhole {},
 }
 
@@ -43,18 +43,13 @@ pub enum Cw20HookMsg {
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
     Config {},
-    WhitelistedAsset {
-        asset_name: String,
-    },
-    WhitelistedAssets {
-        start_after: Option<String>,
-        limit: Option<u32>,
-    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ConfigResponse {
     pub owner: String,
+    pub wormhole_token_address: Option<String>,
+    pub anchor_token_address: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
