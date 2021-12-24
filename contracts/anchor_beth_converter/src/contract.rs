@@ -3,16 +3,18 @@ use cosmwasm_std::entry_point;
 
 use crate::state::{read_config, store_config, Config};
 
-use beth::converter::{ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg, MigrateMsg};
+use beth::converter::{
+    ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg,
+};
 use cosmwasm_std::{
-    from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
-    StdError, StdResult, Uint128, WasmMsg,
+    from_binary, to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdError,
+    StdResult, Uint128, WasmMsg,
 };
 
 use crate::math::{convert_to_anchor_decimals, convert_to_wormhole_decimals};
+use crate::migration::migrate_config;
 use crate::querier::query_decimals;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
-use crate::migration::migrate_config;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -27,8 +29,6 @@ pub fn instantiate(
         owner: deps.api.addr_canonicalize(&msg.owner)?,
         anchor_token_address: None,
         wormhole_token_address: None,
-        anchor_decimals: 0,
-        wormhole_decimals: 0,
     };
 
     store_config(deps.storage).save(&conf)?;
@@ -96,16 +96,11 @@ pub fn register_tokens(
     // if the token contract is  already register we cannot change the address
     if config.anchor_token_address.is_none() {
         config.anchor_token_address = Some(deps.api.addr_canonicalize(&anchor_token_address)?);
-        let anchor_decimals = query_decimals(deps.as_ref(), Addr::unchecked(anchor_token_address))?;
-        config.anchor_decimals = anchor_decimals;
     }
 
     // if the token contract is  already register we cannot change the address
     if config.wormhole_token_address.is_none() {
         config.wormhole_token_address = Some(deps.api.addr_canonicalize(&wormhole_token_address)?);
-        let wormhole_decimals =
-            query_decimals(deps.as_ref(), Addr::unchecked(wormhole_token_address))?;
-        config.wormhole_decimals = wormhole_decimals;
     }
 
     store_config(deps.storage).save(&config)?;
@@ -122,9 +117,28 @@ pub(crate) fn execute_convert_to_anchor(
 ) -> StdResult<Response> {
     let config = read_config(deps.storage)?;
 
+    if config.wormhole_token_address.is_none() || config.wormhole_token_address.is_none() {
+        return Err(StdError::generic_err(
+            "wormhole or anchor token must be registered first",
+        ));
+    }
+
+    let wormhole_decimals = query_decimals(
+        deps.as_ref(),
+        deps.api
+            .addr_humanize(config.wormhole_token_address.as_ref().unwrap())
+            .unwrap(),
+    )?;
+
+    let anchor_decimals = query_decimals(
+        deps.as_ref(),
+        deps.api
+            .addr_humanize(config.anchor_token_address.as_ref().unwrap())
+            .unwrap(),
+    )?;
+
     // should convert to anchor decimals
-    let mint_amount =
-        convert_to_anchor_decimals(amount, config.anchor_decimals, config.wormhole_decimals)?;
+    let mint_amount = convert_to_anchor_decimals(amount, anchor_decimals, wormhole_decimals)?;
 
     Ok(Response::new()
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
@@ -153,9 +167,28 @@ pub(crate) fn execute_convert_to_wormhole(
     sender: String,
 ) -> StdResult<Response> {
     let config = read_config(deps.storage)?;
+    if config.wormhole_token_address.is_none() || config.wormhole_token_address.is_none() {
+        return Err(StdError::generic_err(
+            "wormhole or anchor token must be registered first",
+        ));
+    }
+
+    let wormhole_decimals = query_decimals(
+        deps.as_ref(),
+        deps.api
+            .addr_humanize(config.wormhole_token_address.as_ref().unwrap())
+            .unwrap(),
+    )?;
+
+    let anchor_decimals = query_decimals(
+        deps.as_ref(),
+        deps.api
+            .addr_humanize(config.anchor_token_address.as_ref().unwrap())
+            .unwrap(),
+    )?;
+
     // should convert to wormhole decimals
-    let return_amount =
-        convert_to_wormhole_decimals(amount, config.anchor_decimals, config.wormhole_decimals)?;
+    let return_amount = convert_to_wormhole_decimals(amount, anchor_decimals, wormhole_decimals)?;
 
     Ok(Response::new()
         .add_messages(vec![
@@ -217,16 +250,14 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(ConfigResponse {
         owner: deps.api.addr_humanize(&config.owner)?.to_string(),
         anchor_token_address: anchor_token,
-        anchor_decimals: config.anchor_decimals,
         wormhole_token_address: wormhole_token,
-        wormhole_decimals: config.wormhole_decimals,
     })
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     //migrate config
-    migrate_config(deps.storage, msg.anchor_decimals, msg.wormhole_decimals)?;
+    migrate_config(deps.storage)?;
 
     Ok(Response::default())
 }

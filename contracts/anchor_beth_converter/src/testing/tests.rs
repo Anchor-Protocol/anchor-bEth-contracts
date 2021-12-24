@@ -37,9 +37,7 @@ fn proper_init() {
         ConfigResponse {
             owner: MOCK_OWNER_ADDR.to_string(),
             anchor_token_address: None,
-            anchor_decimals: 0,
             wormhole_token_address: None,
-            wormhole_decimals: 0
         }
     );
 }
@@ -103,6 +101,27 @@ fn proper_convert_to_anchor() {
             .unwrap(),
             funds: vec![]
         }))
+    );
+
+    //cannot convert less than 100 micro wormhole
+    let receive_msg = Receive(Cw20ReceiveMsg {
+        sender: sender.to_string(),
+        amount: Uint128::new(1),
+        msg: to_binary(&ConvertWormholeToAnchor {}).unwrap(),
+    });
+
+    // unauthorized request
+    let invalid_info = mock_info("invalid", &[]);
+    let error_res =
+        execute(deps.as_mut(), mock_env(), invalid_info, receive_msg.clone()).unwrap_err();
+    assert_eq!(error_res, StdError::generic_err("unauthorized"));
+
+    // successful request
+    let wormhole_info = mock_info(MOCK_WORMHOLE_TOKEN_CONTRACT_ADDR, &[]);
+    let res = execute(deps.as_mut(), mock_env(), wormhole_info, receive_msg).unwrap_err();
+    assert_eq!(
+        res,
+        StdError::generic_err("cannot convert, the amount less than 100 cannot be converted")
     );
 }
 
@@ -314,6 +333,21 @@ fn proper_convert_to_wormhole_with_less_decimals() {
             funds: vec![]
         }))
     );
+
+    //cannot convert less than 100 micro wormhole
+    let receive_msg = Receive(Cw20ReceiveMsg {
+        sender: sender.to_string(),
+        amount: Uint128::new(1),
+        msg: to_binary(&ConvertAnchorToWormhole {}).unwrap(),
+    });
+
+    // successful request
+    let wormhole_info = mock_info(MOCK_ANCHOR_TOKEN_CONTRACT_ADDR, &[]);
+    let res = execute(deps.as_mut(), mock_env(), wormhole_info, receive_msg).unwrap_err();
+    assert_eq!(
+        res,
+        StdError::generic_err("cannot convert, the amount less than 100 cannot be converted")
+    );
 }
 
 #[test]
@@ -356,9 +390,7 @@ fn proper_update_config() {
         ConfigResponse {
             owner: MOCK_OWNER_ADDR.to_string(),
             anchor_token_address: Some("beth_token0000".to_string()),
-            anchor_decimals: 6,
             wormhole_token_address: Some("wormhole_token0000".to_string()),
-            wormhole_decimals: 8
         }
     );
 }

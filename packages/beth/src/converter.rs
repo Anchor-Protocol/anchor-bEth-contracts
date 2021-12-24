@@ -51,8 +51,6 @@ pub struct ConfigResponse {
     pub owner: String,
     pub wormhole_token_address: Option<String>,
     pub anchor_token_address: Option<String>,
-    pub anchor_decimals: u8,
-    pub wormhole_decimals: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -67,7 +65,4 @@ pub struct WhitelistedAssetsResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
-pub struct MigrateMsg {
-    pub anchor_decimals: u8,
-    pub wormhole_decimals: u8,
-}
+pub struct MigrateMsg {}

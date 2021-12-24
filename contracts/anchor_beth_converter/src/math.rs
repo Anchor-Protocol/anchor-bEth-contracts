@@ -1,4 +1,4 @@
-use cosmwasm_std::{StdResult, Uint128};
+use cosmwasm_std::{StdError, StdResult, Uint128};
 
 pub(crate) fn convert_to_wormhole_decimals(
     amount: Uint128,
@@ -8,7 +8,14 @@ pub(crate) fn convert_to_wormhole_decimals(
     if anchor_decimals > wormhole_decimals {
         let decimal_fraction =
             Uint128::new(10u128).saturating_pow((anchor_decimals - wormhole_decimals) as u32);
-        Ok(amount.checked_div(decimal_fraction).unwrap())
+        let result = amount.checked_div(decimal_fraction);
+        if result.as_ref().unwrap().is_zero() {
+            return Err(StdError::generic_err(format!(
+                "cannot convert, the amount less than {} cannot be converted",
+                decimal_fraction
+            )));
+        }
+        Ok(result.unwrap())
     } else {
         let decimal_fraction =
             Uint128::new(10u128).saturating_pow((wormhole_decimals - anchor_decimals) as u32);
@@ -24,11 +31,19 @@ pub(crate) fn convert_to_anchor_decimals(
     if anchor_decimals > wormhole_decimals {
         let decimal_fraction =
             Uint128::new(10u128).saturating_pow((anchor_decimals - wormhole_decimals) as u32);
+
         Ok(amount.checked_mul(decimal_fraction).unwrap())
     } else {
         let decimal_fraction =
             Uint128::new(10u128).saturating_pow((wormhole_decimals - anchor_decimals) as u32);
-        Ok(amount.checked_div(decimal_fraction).unwrap())
+        let result = amount.checked_div(decimal_fraction);
+        if result.as_ref().unwrap().is_zero() {
+            return Err(StdError::generic_err(format!(
+                "cannot convert, the amount less than {} cannot be converted",
+                decimal_fraction
+            )));
+        }
+        Ok(result.unwrap())
     }
 }
 
