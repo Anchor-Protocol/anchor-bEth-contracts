@@ -12,7 +12,6 @@ use cosmwasm_std::{
 };
 
 use crate::math::{convert_to_anchor_decimals, convert_to_wormhole_decimals};
-use crate::migration::migrate_config;
 use crate::querier::query_decimals;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
@@ -255,9 +254,6 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
-    //migrate config
-    migrate_config(deps.storage)?;
-
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> StdResult<Response> {
     Ok(Response::default())
 }

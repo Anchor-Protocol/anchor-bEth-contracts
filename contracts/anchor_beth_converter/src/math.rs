@@ -11,7 +11,7 @@ pub(crate) fn convert_to_wormhole_decimals(
         let result = amount.checked_div(decimal_fraction);
         if result.as_ref().unwrap().is_zero() {
             return Err(StdError::generic_err(format!(
-                "cannot convert, the amount less than {} cannot be converted",
+                "cannot convert; conversion is only possible for amounts greater than {} anchor token",
                 decimal_fraction
             )));
         }
@@ -39,7 +39,7 @@ pub(crate) fn convert_to_anchor_decimals(
         let result = amount.checked_div(decimal_fraction);
         if result.as_ref().unwrap().is_zero() {
             return Err(StdError::generic_err(format!(
-                "cannot convert, the amount less than {} cannot be converted",
+                "cannot convert; conversion is only possible for amounts greater than {} wormhole token",
                 decimal_fraction
             )));
         }

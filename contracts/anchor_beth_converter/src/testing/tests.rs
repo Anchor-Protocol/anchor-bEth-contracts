@@ -121,7 +121,7 @@ fn proper_convert_to_anchor() {
     let res = execute(deps.as_mut(), mock_env(), wormhole_info, receive_msg).unwrap_err();
     assert_eq!(
         res,
-        StdError::generic_err("cannot convert, the amount less than 100 cannot be converted")
+        StdError::generic_err("cannot convert; conversion is only possible for amounts greater than 100 wormhole token")
     );
 }
 
@@ -346,7 +346,9 @@ fn proper_convert_to_wormhole_with_less_decimals() {
     let res = execute(deps.as_mut(), mock_env(), wormhole_info, receive_msg).unwrap_err();
     assert_eq!(
         res,
-        StdError::generic_err("cannot convert, the amount less than 100 cannot be converted")
+        StdError::generic_err(
+            "cannot convert; conversion is only possible for amounts greater than 100 anchor token"
+        )
     );
 }
 
