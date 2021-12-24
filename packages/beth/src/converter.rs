@@ -64,3 +64,10 @@ pub struct WhitelistedAssetResponse {
 pub struct WhitelistedAssetsResponse {
     pub assets: Vec<Asset>,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct MigrateMsg {
+    pub anchor_decimals: u8,
+    pub wormhole_decimals: u8,
+}

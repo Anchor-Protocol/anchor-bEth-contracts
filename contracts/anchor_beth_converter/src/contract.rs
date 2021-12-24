@@ -3,7 +3,7 @@ use cosmwasm_std::entry_point;
 
 use crate::state::{read_config, store_config, Config};
 
-use beth::converter::{ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use beth::converter::{ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg, MigrateMsg};
 use cosmwasm_std::{
     from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
     StdError, StdResult, Uint128, WasmMsg,
@@ -12,6 +12,7 @@ use cosmwasm_std::{
 use crate::math::{convert_to_anchor_decimals, convert_to_wormhole_decimals};
 use crate::querier::query_decimals;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
+use crate::migration::migrate_config;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -220,4 +221,12 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         wormhole_token_address: wormhole_token,
         wormhole_decimals: config.wormhole_decimals,
     })
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> StdResult<Response> {
+    //migrate config
+    migrate_config(deps.storage, msg.anchor_decimals, msg.wormhole_decimals)?;
+
+    Ok(Response::default())
 }
