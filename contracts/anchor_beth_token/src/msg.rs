@@ -10,3 +10,8 @@ pub struct TokenInstantiateMsg {
     pub mint: Option<MinterResponse>,
     pub reward_contract: String,
 }
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct MigrateMsg {
+    pub minter: String,
+}
