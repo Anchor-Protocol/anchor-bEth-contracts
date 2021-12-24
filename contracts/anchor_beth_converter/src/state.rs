@@ -10,6 +10,8 @@ pub struct Config {
     pub owner: CanonicalAddr,
     pub anchor_token_address: Option<CanonicalAddr>,
     pub wormhole_token_address: Option<CanonicalAddr>,
+    pub anchor_decimals: u8,
+    pub wormhole_decimals: u8,
 }
 
 pub fn store_config(storage: &mut dyn Storage) -> Singleton<Config> {

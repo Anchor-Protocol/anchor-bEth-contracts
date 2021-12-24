@@ -3,18 +3,10 @@
   "title": "InstantiateMsg",
   "type": "object",
   "required": [
-    "anchor_beth_token",
-    "owner",
-    "wormhole_beth_token"
+    "owner"
   ],
   "properties": {
-    "anchor_beth_token": {
-      "type": "string"
-    },
     "owner": {
-      "type": "string"
-    },
-    "wormhole_beth_token": {
       "type": "string"
     }
   }

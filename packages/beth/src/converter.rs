@@ -2,6 +2,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use cw20::Cw20ReceiveMsg;
+
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug, Default)]
 pub struct Asset {
     pub asset_name: String,
@@ -50,6 +51,8 @@ pub struct ConfigResponse {
     pub owner: String,
     pub wormhole_token_address: Option<String>,
     pub anchor_token_address: Option<String>,
+    pub anchor_decimals: u8,
+    pub wormhole_decimals: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

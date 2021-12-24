@@ -2,10 +2,11 @@ use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::{
     from_slice, to_binary, AllBalanceResponse, Api, BalanceResponse, BankQuery, CanonicalAddr,
     Coin, ContractResult, Decimal, OwnedDeps, Querier, QuerierResult, QueryRequest, SystemError,
-    SystemResult, Uint128,
+    SystemResult, Uint128, WasmQuery,
 };
 use std::collections::HashMap;
 
+use cw20::TokenInfoResponse;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use terra_cosmwasm::{TaxCapResponse, TaxRateResponse, TerraQuery, TerraQueryWrapper, TerraRoute};
@@ -54,6 +55,8 @@ pub(crate) fn caps_to_map(caps: &[(&String, &Uint128)]) -> HashMap<String, Uint1
 pub struct WasmMockQuerier {
     base: MockQuerier<TerraQueryWrapper>,
     tax_querier: TaxQuerier,
+    // first one is anchor token decimals, the second one is wormhole token decimals
+    decimals: (u8, u8),
 }
 
 impl Querier for WasmMockQuerier {
@@ -132,6 +135,26 @@ impl WasmMockQuerier {
                     unimplemented!()
                 }
             }
+            QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr,
+                msg: _,
+            }) => {
+                if contract_addr == "wormhole_token0000" {
+                    SystemResult::Ok(ContractResult::from(to_binary(&TokenInfoResponse {
+                        name: "wormhole_token".to_string(),
+                        symbol: "WORM".to_string(),
+                        decimals: self.decimals.1,
+                        total_supply: Default::default(),
+                    })))
+                } else {
+                    SystemResult::Ok(ContractResult::from(to_binary(&TokenInfoResponse {
+                        name: "anchor_token".to_string(),
+                        symbol: "ANC".to_string(),
+                        decimals: self.decimals.0,
+                        total_supply: Default::default(),
+                    })))
+                }
+            }
             _ => self.base.handle_query(request),
         }
     }
@@ -147,12 +170,17 @@ impl WasmMockQuerier {
         WasmMockQuerier {
             base,
             tax_querier: TaxQuerier::default(),
+            decimals: (6, 8),
         }
     }
 
     // configure the tax mock querier
     pub fn with_tax(&mut self, rate: Decimal, caps: &[(&String, &Uint128)]) {
         self.tax_querier = TaxQuerier::new(rate, caps);
+    }
+
+    pub fn set_decimals(&mut self, anchor_decimals: u8, wormhole_decimals: u8) {
+        self.decimals = (anchor_decimals, wormhole_decimals)
     }
 }
 

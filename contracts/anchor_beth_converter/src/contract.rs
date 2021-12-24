@@ -5,10 +5,12 @@ use crate::state::{read_config, store_config, Config};
 
 use beth::converter::{ConfigResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_std::{
-    from_binary, to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdError,
-    StdResult, Uint128, WasmMsg,
+    from_binary, to_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response,
+    StdError, StdResult, Uint128, WasmMsg,
 };
 
+use crate::math::{convert_to_anchor_decimals, convert_to_wormhole_decimals};
+use crate::querier::query_decimals;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -18,10 +20,14 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
+    // cannot register the token at the inistantiation
+    // because for the anchor token contract, converter needs to be minter.
     let conf = Config {
         owner: deps.api.addr_canonicalize(&msg.owner)?,
         anchor_token_address: None,
         wormhole_token_address: None,
+        anchor_decimals: 0,
+        wormhole_decimals: 0,
     };
 
     store_config(deps.storage).save(&conf)?;
@@ -86,17 +92,24 @@ pub fn register_tokens(
         return Err(StdError::generic_err("unauthorized"));
     }
 
+    // if the token contract is  already register we cannot change the address
     if config.anchor_token_address.is_none() {
         config.anchor_token_address = Some(deps.api.addr_canonicalize(&anchor_token_address)?);
+        let anchor_decimals = query_decimals(deps.as_ref(), Addr::unchecked(anchor_token_address))?;
+        config.anchor_decimals = anchor_decimals;
     }
 
+    // if the token contract is  already register we cannot change the address
     if config.wormhole_token_address.is_none() {
         config.wormhole_token_address = Some(deps.api.addr_canonicalize(&wormhole_token_address)?);
+        let wormhole_decimals =
+            query_decimals(deps.as_ref(), Addr::unchecked(wormhole_token_address))?;
+        config.wormhole_decimals = wormhole_decimals;
     }
 
     store_config(deps.storage).save(&config)?;
 
-    Ok(Response::new().add_attributes(vec![("action", "update_config")]))
+    Ok(Response::new().add_attributes(vec![("action", "register_token_contracts")]))
 }
 
 pub(crate) fn execute_convert_to_anchor(
@@ -108,6 +121,10 @@ pub(crate) fn execute_convert_to_anchor(
 ) -> StdResult<Response> {
     let config = read_config(deps.storage)?;
 
+    // should convert to anchor decimals
+    let mint_amount =
+        convert_to_anchor_decimals(amount, config.anchor_decimals, config.wormhole_decimals)?;
+
     Ok(Response::new()
         .add_message(CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: deps
@@ -116,14 +133,14 @@ pub(crate) fn execute_convert_to_anchor(
                 .to_string(),
             msg: to_binary(&Cw20ExecuteMsg::Mint {
                 recipient: sender.to_string(),
-                amount,
+                amount: mint_amount,
             })?,
             funds: vec![],
         }))
         .add_attributes(vec![
-            ("action", "bond"),
+            ("action", "convert-to-anchor"),
             ("recipient", &sender),
-            ("minted_amount", &amount.to_string()),
+            ("minted_amount", &mint_amount.to_string()),
         ]))
 }
 
@@ -135,6 +152,9 @@ pub(crate) fn execute_convert_to_wormhole(
     sender: String,
 ) -> StdResult<Response> {
     let config = read_config(deps.storage)?;
+    // should convert to wormhole decimals
+    let return_amount =
+        convert_to_wormhole_decimals(amount, config.anchor_decimals, config.wormhole_decimals)?;
 
     Ok(Response::new()
         .add_messages(vec![
@@ -145,7 +165,7 @@ pub(crate) fn execute_convert_to_wormhole(
                     .to_string(),
                 msg: to_binary(&Cw20ExecuteMsg::Transfer {
                     recipient: sender.clone(),
-                    amount,
+                    amount: return_amount,
                 })?,
                 funds: vec![],
             }),
@@ -159,9 +179,10 @@ pub(crate) fn execute_convert_to_wormhole(
             }),
         ])
         .add_attributes(vec![
-            ("action", "unbond"),
+            ("action", "convert-to-wormhole"),
             ("recipient", &sender),
-            ("unbonded_amount", &amount.to_string()),
+            ("return_amount", &return_amount.to_string()),
+            ("born_amount", &amount.to_string()),
         ]))
 }
 
@@ -195,6 +216,8 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     Ok(ConfigResponse {
         owner: deps.api.addr_humanize(&config.owner)?.to_string(),
         anchor_token_address: anchor_token,
+        anchor_decimals: config.anchor_decimals,
         wormhole_token_address: wormhole_token,
+        wormhole_decimals: config.wormhole_decimals,
     })
 }

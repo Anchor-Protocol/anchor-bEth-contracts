@@ -18,29 +18,21 @@
     {
       "type": "object",
       "required": [
-        "update_config"
+        "register_tokens"
       ],
       "properties": {
-        "update_config": {
+        "register_tokens": {
           "type": "object",
+          "required": [
+            "anchor_token_address",
+            "wormhole_token_address"
+          ],
           "properties": {
-            "anchor_beth_token": {
-              "type": [
-                "string",
-                "null"
-              ]
+            "anchor_token_address": {
+              "type": "string"
             },
-            "owner": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "wormhole_beth_token": {
-              "type": [
-                "string",
-                "null"
-              ]
+            "wormhole_token_address": {
+              "type": "string"
             }
           }
         }

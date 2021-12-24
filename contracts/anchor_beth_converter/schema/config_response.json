@@ -3,19 +3,35 @@
   "title": "ConfigResponse",
   "type": "object",
   "required": [
-    "anchor_beth_token",
+    "anchor_decimals",
     "owner",
-    "wormhole_beth_token"
+    "wormhole_decimals"
   ],
   "properties": {
-    "anchor_beth_token": {
-      "type": "string"
+    "anchor_decimals": {
+      "type": "integer",
+      "format": "uint8",
+      "minimum": 0.0
+    },
+    "anchor_token_address": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "owner": {
       "type": "string"
     },
-    "wormhole_beth_token": {
-      "type": "string"
+    "wormhole_decimals": {
+      "type": "integer",
+      "format": "uint8",
+      "minimum": 0.0
+    },
+    "wormhole_token_address": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   }
 }
