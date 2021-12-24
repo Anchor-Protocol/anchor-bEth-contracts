@@ -215,7 +215,7 @@ pub(crate) fn execute_convert_to_wormhole(
             ("action", "convert-to-wormhole"),
             ("recipient", &sender),
             ("return_amount", &return_amount.to_string()),
-            ("born_amount", &amount.to_string()),
+            ("burn_amount", &amount.to_string()),
         ]))
 }
 
