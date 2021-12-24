@@ -160,11 +160,6 @@ impl WasmMockQuerier {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct TokenQuerier {
-    balances: HashMap<String, HashMap<String, Uint128>>,
-}
-
 impl WasmMockQuerier {
     pub fn new<A: Api>(base: MockQuerier<TerraQueryWrapper>, _api: A) -> Self {
         WasmMockQuerier {
